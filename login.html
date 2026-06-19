@@ -1,0 +1,10 @@
+// Contoh simulasi ketika user menekan tombol "Masuk"
+function prosesLogin(usernameInput) {
+  if(usernameInput.trim() !== "") {
+    // 1. Simpan username yang sedang aktif saat ini
+    localStorage.setItem('userAktif', usernameInput.toLowerCase());
+    
+    // 2. Lempar user ke halaman dompet
+    window.location.href = 'dompet.html';
+  }
+}
