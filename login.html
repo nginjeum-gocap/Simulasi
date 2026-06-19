@@ -134,6 +134,7 @@
       color: white;
       outline: none;
       font-size: 0.9rem;
+      box-sizing: border-box;
     }
 
     .input-group input:focus {
@@ -163,6 +164,7 @@
       color: #45f3ff;
       cursor: pointer;
       text-decoration: underline;
+      font-weight: bold;
     }
 
     /* INFO TIMER PEMBERSIHAN DATA */
@@ -207,8 +209,8 @@
 
       <button class="btn-submit" id="submitFormBtn">Masuk</button>
 
-      <div class="switch-form-text" id="infoPindahForm">
-        Belum punya akun? <span id="linkTukarForm">Daftar Sekarang</span>
+      <div class="switch-form-text">
+        <span id="labelPanduan">Belum punya akun? </span><span id="linkTukarForm">Daftar Sekarang</span>
       </div>
     </div>
   </div>
@@ -222,41 +224,45 @@
     const inputEmail = document.getElementById('inputEmail');
     const inputPassword = document.getElementById('inputPassword');
     const submitFormBtn = document.getElementById('submitFormBtn');
-    const infoPindahForm = document.getElementById('infoPindahForm');
+    const labelPanduan = document.getElementById('labelPanduan');
     const linkTukarForm = document.getElementById('linkTukarForm');
 
-    // Status form saat ini (true = mode login, false = mode registrasi)
-    letisModeLogin = true;
+    // Status awal: true artinya kita lagi di form LOGIN
+    let isModeLogin = true;
 
-    // 1. KONTROL TOMBOL POP-UP
+    // 1. KONTROL POP-UP (BUKA & TUTUP)
     bukaPopupBtn.addEventListener('click', () => popupOverlay.classList.add('show'));
     tutupPopupBtn.addEventListener('click', () => popupOverlay.classList.remove('show'));
 
-    // Menutup pop-up jika user klik area blur di luar kotak
     popupOverlay.addEventListener('click', (e) => {
       if(e.target === popupOverlay) popupOverlay.classList.remove('show');
     });
 
-    // 2. LOGIKA TUKAR MODE (LOGIN OKE / REGISTRASI OKE)
+    // 2. LOGIKA UTAMA TUKAR TEKS DAN TOMBOL (ANTI-GAGAL)
     linkTukarForm.addEventListener('click', () => {
+      // Balikkan status mode (jika true jadi false, jika false jadi true)
       isModeLogin = !isModeLogin;
+      
+      // Kosongkan inputan setiap kali tukar menu biar bersih
       inputEmail.value = "";
       inputPassword.value = "";
 
-      if(isModeLogin) {
+      if (isModeLogin) {
+        // JIKA KEMBALI KE MODE LOGIN:
         judulForm.textContent = "Masuk Akun";
         submitFormBtn.textContent = "Masuk";
-        infoPindahForm.innerHTML = `Belum punya akun? <span id="linkTukarForm">Daftar Sekarang</span>`;
+        labelPanduan.textContent = "Belum punya akun? ";
+        linkTukarForm.textContent = "Daftar Sekarang";
       } else {
+        // JIKA PINDAH KE MODE DAFTAR / REGISTRASI:
         judulForm.textContent = "Registrasi Akun Baru";
         submitFormBtn.textContent = "Daftar Akun";
-        infoPindahForm.innerHTML = `Sudah punya akun? <span id="linkTukarForm">Login Di Sini</span>`;
+        labelPanduan.textContent = "Sudah punya akun? ";
+        linkTukarForm.textContent = "Login Di Sini";
       }
-      // Re-bind element klik karena innerHTML di-reset
-      document.getElementById('linkTukarForm').addEventListener('click', arguments.callee);
     });
 
-    // 3. LOGIKA AKSI EKSEKUSI FORM SUBMIT
+    // 3. LOGIKA EKSEKUSI FORM (PROSES DATA KE LOCALSTORAGE)
     submitFormBtn.addEventListener('click', () => {
       const email = inputEmail.value.trim().toLowerCase();
       const password = inputPassword.value.trim();
@@ -266,51 +272,40 @@
         return;
       }
 
-      // Ambil DB lokal user di browser
+      // Ambil database simulasi user di browser
       let databaseUser = JSON.parse(localStorage.getItem('db_simulasi_user')) || {};
 
-      if(!isModeLogin) {
-        // --- PROSES REGISTRASI ---
+      if (!isModeLogin) {
+        // --- PROSES DAFTAR ---
         if(databaseUser[email]) {
-          alert("Gagal: Email ini sudah terdaftar di sistem!");
+          alert("Gagal: Email ini sudah terdaftar!");
         } else {
-          // Masukkan data baru ke object database
-          databaseUser[email] = password;
+          databaseUser[email] = password; // Simpan password ke email terkait
           localStorage.setItem('db_simulasi_user', JSON.stringify(databaseUser));
-          alert("Registrasi Sukses! Akun Anda berhasil terdaftar. Silakan login.");
-          
-          // Balikin otomatis ke menu login
-          linkTukarForm.click();
+          alert("Registrasi Sukses! Akun berhasil disimpan. Silakan pencet 'Login Di Sini' untuk masuk.");
+          linkTukarForm.click(); // Otomatis balikin tampilan ke mode login setelah daftar
         }
       } else {
         // --- PROSES LOGIN ---
         if(databaseUser[email] && databaseUser[email] === password) {
-          // Bikin token sesi aktif berdasarkan nama depan email
-          const usernameId = email.split('@')[0];
+          const usernameId = email.split('@')[0]; // Ambil nama depan email buat ID
           localStorage.setItem('userAktif', usernameId);
-          
           alert(`Login Berhasil! Selamat datang ${usernameId}.`);
-          // Oper / Pindah ke halaman dompet virtual
-          window.location.href = 'dompet.html'; 
+          window.location.href = 'dompet.html'; // Lempar ke dompet.html
         } else {
-          alert("Gagal: Email tidak terdaftar atau password Anda salah!");
+          alert("Gagal: Akun tidak ditemukan atau password salah!");
         }
       }
     });
 
-    // ====================================================================
-    // 4. PITUR TIMER SIMULASI: HAPUS SEMUA DATA SETIAP 2 MENIT (120000 ms)
-    // ====================================================================
+    // 4. RESET OTOMATIS LOCAL STORAGE SETIAP 2 MENIT
     setInterval(() => {
       localStorage.clear(); 
-      console.log("Sistem Log: Local Storage telah dibersihkan otomatis (Siklus 2 Menit).");
-      
-      // Jika user sedang membuka pop-up saat pembersihan terjadi, paksa reset inputan
+      console.log("Sistem Log: Data dibersihkan otomatis oleh sistem.");
       inputEmail.value = "";
       inputPassword.value = "";
     }, 120000);
   </script>
 
 </body>
-    </html>
-    
+</html>
