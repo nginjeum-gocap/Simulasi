@@ -130,6 +130,13 @@
       color: #66fcf1;
       background-color: rgba(102, 252, 241, 0.1);
     }
+    
+    /* NOTIFIKASI MODE SIMULASI */
+    .sim-alert {
+      font-size: 0.7rem;
+      color: #ff4d4d;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
@@ -137,7 +144,7 @@
   <div class="wallet-card">
     <div class="user-profile-info">
       <div>ID: <span class="username-badge" id="namaUserLayar">Guest</span></div>
-      <button class="btn-logout" id="btnSesiLogout">Keluar Akun</button>
+      <button class="btn-logout" id="btnSesiLogout">Keluar</button>
     </div>
 
     <div class="balance-title">Saldo Virtual Anda</div>
@@ -150,35 +157,30 @@
 
     <div class="section-title">Pilihan Instan (5 Opsi)</div>
     <div class="instant-grid" id="areaTombolInstan"></div>
+    
+    <div class="sim-alert">⏱️ Halaman ini mendeteksi siklus 2 menit Local Storage.</div>
   </div>
 
   <script>
     // ========================================================
-    // 1. SISTEM MANAJEMEN SESI AKUN USER (EDUKASI AKSES)
+    // 1. PROTEKSI AKSES GERBANG LOGIN & SINKRONISASI
     // ========================================================
     let userAktif = localStorage.getItem('userAktif');
 
-    // Jika kedapatan belum masuk/tidak ada sesi login, paksa buat akun bayangan via prompt
+    // Jika kedapatan tidak ada data userAktif, langsung tendang ke login.html
     if (!userAktif) {
-      alert("Lu belum login, cok! Silakan isi nama akun simulasi lu dlu.");
-      let registerPalsu = prompt("Buat Username Akun Baru / Masuk Akun Lama:", "joni_epic");
-      
-      if (registerPalsu === null || registerPalsu.trim() === "") {
-        userAktif = "guest_studio";
-      } else {
-        userAktif = registerPalsu.trim().toLowerCase();
-      }
-      localStorage.setItem('userAktif', userAktif);
+      alert("Akses Ditolak: Lu belum login atau sesi simulasi 2 menit sudah habis, cok!");
+      window.location.href = 'login.html';
     }
 
-    // Tampilkan ID Username Aktif ke komponen kartu bagian atas
+    // Tampilkan nama akun di layar kartu bagian atas
     document.getElementById('namaUserLayar').textContent = userAktif;
 
-    // Kunci Token String Unik Gabungan: saldo_ + nama_user (Contoh: saldo_joni_epic)
+    // Kunci unik untuk membedakan saldo antar akun (Contoh: saldo_joni)
     const keySaldoAkunUnik = 'saldo_' + userAktif;
 
     // ========================================================
-    // 2. LOGIKA UTAMA DOMPET VIRTUAL
+    // 2. LOGIKA OPERASIONAL WALLET
     // ========================================================
     const displaySaldo = document.getElementById('displaySaldo');
     const btnTopUpManual = document.getElementById('btnTopUpManual');
@@ -188,7 +190,6 @@
 
     const daftarNominal = [20000, 50000, 100000, 200000, 500000];
 
-    // Ambil saldo spesifik milik akun yang sedang login saat ini
     function dapatkanSaldoSistem() {
       const saldoLokal = localStorage.getItem(keySaldoAkunUnik);
       return saldoLokal ? parseInt(saldoLokal) : 0;
@@ -201,17 +202,16 @@
     let saldoAktif = dapatkanSaldoSistem();
     updateTampilanLayar(saldoAktif);
 
-    // Kirim data mutasi saldo baru ke penyimpanan database lokal browser
     function prosesSimpanMutasiSaldo(nominalBaru) {
       localStorage.setItem(keySaldoAkunUnik, nominalBaru);
       updateTampilanLayar(nominalBaru);
     }
 
     // ========================================================
-    // 3. EVENT ACTION HANDLER
+    // 3. ACTION EVENT HANDLER
     // ========================================================
     
-    // Generate Pilihan tombol Cepat 
+    // Cetak 5 tombol instan
     daftarNominal.forEach((nominal) => {
       const tombol = document.createElement('button');
       tombol.className = 'btn-instant';
@@ -225,13 +225,11 @@
       areaTombolInstan.appendChild(tombol);
     });
 
-    // Top Up Manual Angka Bebas
+    // Top Up Manual
     btnTopUpManual.addEventListener('click', () => {
       let inputUser = prompt(`[Top Up - Akun: ${userAktif}] Masukkan nominal Rp:`, "50000");
-      
       if (inputUser !== null) {
         let nominalInput = parseInt(inputUser.replace(/\D/g, '')); 
-
         if (!isNaN(nominalInput) && nominalInput > 0) {
           saldoAktif += nominalInput;
           prosesSimpanMutasiSaldo(saldoAktif);
@@ -241,12 +239,11 @@
       }
     });
 
-    // Simulasi Pengurangan Saldo (Belanja)
+    // Simulasi Belanja
     btnKurang.addEventListener('click', () => {
       let inputBelanja = prompt(`[Belanja - Akun: ${userAktif}] Masukkan total harga belanja Rp:`, "25000");
       if (inputBelanja !== null) {
         let nominalBelanja = parseInt(inputBelanja.replace(/\D/g, ''));
-
         if (!isNaN(nominalBelanja) && nominalBelanja > 0) {
           if (saldoAktif >= nominalBelanja) {
             saldoAktif -= nominalBelanja;
@@ -260,15 +257,23 @@
       }
     });
 
-    // Tombol Switch/Logout Akun Simulasi
+    // Tombol Keluar Manual
     btnSesiLogout.addEventListener('click', () => {
-      if(confirm("Keluar dari akun simulasi ini? Data saldo lu gak bakal hilang kok.")) {
-        localStorage.removeItem('userAktif'); // Hapus session login aktif saat ini
-        location.reload(); // Reload halaman untuk memicu form login baru
-      }
+      localStorage.removeItem('userAktif');
+      window.location.href = 'login.html';
     });
+
+    // ========================================================
+    // 4. DETEKTOR REAL-TIME UNTUK AUTO-RESET 2 MENIT
+    // ========================================================
+    // Secara konstan memeriksa setiap 1 detik apakah data session di-wipe oleh login.html
+    setInterval(() => {
+      if (!localStorage.getItem('userAktif')) {
+        alert("Waktu simulasi habis! Data di-reset otomatis oleh sistem.");
+        window.location.href = 'login.html';
+      }
+    }, 1000);
   </script>
 
 </body>
-  </html>
-  
+</html>
