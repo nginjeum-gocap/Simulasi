@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>All Animation Studio - Gerbang Masuk</title>
+  <title>Simulasi E-Wallet - Multi User System</title>
   <style>
     body {
       background-color: #0b0c10;
@@ -14,44 +14,19 @@
       align-items: center;
       min-height: 100vh;
       margin: 0;
+      padding: 20px;
       flex-direction: column;
     }
-
-    .welcome-container {
+    .wallet-card {
+      background-color: #1f2833;
+      border: 2px solid #66fcf1;
+      border-radius: 16px;
+      padding: 30px;
       text-align: center;
-      max-width: 400px;
-      padding: 20px;
-    }
-
-    h1 {
-      color: #66fcf1;
-      text-shadow: 0 0 15px rgba(102, 252, 241, 0.4);
-      margin-bottom: 10px;
-    }
-
-    p {
-      color: #c5c6c7;
-      font-size: 0.95rem;
-      margin-bottom: 30px;
-    }
-
-    .btn-trigger {
-      background-color: #66fcf1;
-      color: #0b0c10;
-      border: none;
-      padding: 14px 28px;
-      font-size: 1rem;
-      font-weight: bold;
-      border-radius: 25px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(102, 252, 241, 0.2);
-    }
-
-    .btn-trigger:hover {
-      background-color: #45f3ff;
-      transform: scale(1.05);
-      box-shadow: 0 0 20px rgba(102, 252, 241, 0.5);
+      box-shadow: 0 0 20px rgba(102, 252, 241, 0.2);
+      width: 100%;
+      max-width: 360px;
+      position: relative;
     }
 
     /* BACKGROUND BLUR POP-UP (OVERLAY) */
@@ -110,6 +85,7 @@
       font-weight: bold;
       margin-bottom: 20px;
       color: #ffffff;
+      text-align: left;
     }
 
     /* STYLE ATRIBUT INPUT */
@@ -141,17 +117,22 @@
       border-color: #66fcf1;
     }
 
-    .btn-submit {
+    .btn-main {
       width: 100%;
       background-color: #66fcf1;
       color: #0b0c10;
       border: none;
-      padding: 11px;
+      padding: 12px;
       border-radius: 8px;
       font-weight: bold;
       cursor: pointer;
       font-size: 0.95rem;
       margin-top: 10px;
+      transition: all 0.3s;
+    }
+    .btn-main:hover {
+      background-color: #45f3ff;
+      box-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
     }
 
     .switch-form-text {
@@ -166,29 +147,23 @@
       text-decoration: underline;
       font-weight: bold;
     }
-
-    /* INFO TIMER PEMBERSIHAN DATA */
-    .timer-info {
-      margin-top: 30px;
-      font-size: 0.75rem;
+    
+    .sim-alert {
+      font-size: 0.7rem;
       color: #ff4d4d;
-      border: 1px dashed #ff4d4d;
-      padding: 8px;
-      border-radius: 6px;
-      background-color: rgba(255, 77, 77, 0.05);
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
 
-  <div class="welcome-container">
-    <h1>Studio Gateway</h1>
-    <p>Silakan masuk ke akun simulasi Anda untuk mengakses Layanan Dompet Virtual Kreatif.</p>
-    <button class="btn-trigger" id="bukaPopupBtn">Masuk / Daftar</button>
+  <div class="wallet-card">
+    <h2 style="color: #66fcf1; margin-bottom: 10px;">Studio Gateway</h2>
+    <p style="color: #c5c6c7; font-size: 0.9rem; margin-bottom: 25px;">Silakan masuk ke akun simulasi Anda untuk mengakses Layanan Dompet Virtual.</p>
     
-    <div class="timer-info">
-      ⚠️ Mode Simulasi Aktif: Seluruh database akun di Local Storage akan otomatis terhapus bersih setiap 2 menit sekali demi keamanan edukasi.
-    </div>
+    <button class="btn-main" id="bukaPopupBtn">Masuk / Daftar Akun</button>
+    
+    <div class="sim-alert">⚠️ Mode Simulasi: Seluruh database di Local Storage akan otomatis terhapus setiap 2 menit sekali.</div>
   </div>
 
   <div class="popup-overlay" id="popupOverlay">
@@ -207,7 +182,7 @@
         <input type="password" id="inputPassword" placeholder="••••••••">
       </div>
 
-      <button class="btn-submit" id="submitFormBtn">Masuk</button>
+      <button class="btn-main" id="submitFormBtn">Masuk</button>
 
       <div class="switch-form-text">
         <span id="labelPanduan">Belum punya akun? </span><span id="linkTukarForm">Daftar Sekarang</span>
@@ -227,7 +202,7 @@
     const labelPanduan = document.getElementById('labelPanduan');
     const linkTukarForm = document.getElementById('linkTukarForm');
 
-    // Status awal: true artinya kita lagi di form LOGIN
+    // Status: true = form login, false = form registrasi
     let isModeLogin = true;
 
     // 1. KONTROL POP-UP (BUKA & TUTUP)
@@ -238,23 +213,34 @@
       if(e.target === popupOverlay) popupOverlay.classList.remove('show');
     });
 
-    // 2. LOGIKA UTAMA TUKAR TEKS DAN TOMBOL (ANTI-GAGAL)
-    linkTukarForm.addEventListener('click', () => {
-      // Balikkan status mode (jika true jadi false, jika false jadi true)
-      isModeLogin = !isModeLogin;
+    // SYSTEM LOGGER: Fungsi pengirim riwayat ke admin.html
+    function catatAktivitasSistem(namaUser, jenisAksi, detailPesan) {
+      let logLokal = JSON.parse(localStorage.getItem('db_log_simulasi')) || [];
+      const waktuSekarang = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
       
-      // Kosongkan inputan setiap kali tukar menu biar bersih
+      const dataLogBaru = {
+        waktu: waktuSekarang,
+        user: namaUser,
+        aksi: jenisAksi,
+        detail: detailPesan
+      };
+      
+      logLokal.push(dataLogBaru);
+      localStorage.setItem('db_log_simulasi', JSON.stringify(logLokal));
+    }
+
+    // 2. LOGIKA UTAMA TUKAR FORM (ANTI-GAGAL)
+    linkTukarForm.addEventListener('click', () => {
+      isModeLogin = !isModeLogin;
       inputEmail.value = "";
       inputPassword.value = "";
 
       if (isModeLogin) {
-        // JIKA KEMBALI KE MODE LOGIN:
         judulForm.textContent = "Masuk Akun";
         submitFormBtn.textContent = "Masuk";
         labelPanduan.textContent = "Belum punya akun? ";
         linkTukarForm.textContent = "Daftar Sekarang";
       } else {
-        // JIKA PINDAH KE MODE DAFTAR / REGISTRASI:
         judulForm.textContent = "Registrasi Akun Baru";
         submitFormBtn.textContent = "Daftar Akun";
         labelPanduan.textContent = "Sudah punya akun? ";
@@ -262,7 +248,7 @@
       }
     });
 
-    // 3. LOGIKA EKSEKUSI FORM (PROSES DATA KE LOCALSTORAGE)
+    // 3. PROSES DATA REGISTRASI & LOGIN KE LOCALSTORAGE
     submitFormBtn.addEventListener('click', () => {
       const email = inputEmail.value.trim().toLowerCase();
       const password = inputPassword.value.trim();
@@ -272,7 +258,6 @@
         return;
       }
 
-      // Ambil database simulasi user di browser
       let databaseUser = JSON.parse(localStorage.getItem('db_simulasi_user')) || {};
 
       if (!isModeLogin) {
@@ -280,28 +265,36 @@
         if(databaseUser[email]) {
           alert("Gagal: Email ini sudah terdaftar!");
         } else {
-          databaseUser[email] = password; // Simpan password ke email terkait
+          databaseUser[email] = password;
           localStorage.setItem('db_simulasi_user', JSON.stringify(databaseUser));
-          alert("Registrasi Sukses! Akun berhasil disimpan. Silakan pencet 'Login Di Sini' untuk masuk.");
-          linkTukarForm.click(); // Otomatis balikin tampilan ke mode login setelah daftar
+          
+          // KIRIM LOG KE ADMIN
+          catatAktivitasSistem(email.split('@')[0], "REGISTRASI", `Berhasil membuat akun baru dengan email: ${email}`);
+          
+          alert("Registrasi Sukses! Silakan pencet 'Login Di Sini' untuk masuk.");
+          linkTukarForm.click(); // Balikin tampilan ke login
         }
       } else {
         // --- PROSES LOGIN ---
         if(databaseUser[email] && databaseUser[email] === password) {
-          const usernameId = email.split('@')[0]; // Ambil nama depan email buat ID
+          const usernameId = email.split('@')[0]; // Nama depan email jadi username
           localStorage.setItem('userAktif', usernameId);
+          
+          // KIRIM LOG KE ADMIN
+          catatAktivitasSistem(usernameId, "LOGIN", "User berhasil masuk ke dashboard dompet.");
+          
           alert(`Login Berhasil! Selamat datang ${usernameId}.`);
-          window.location.href = 'index.html'; // Lempar ke dompet.html
+          window.location.href = 'index.html'; // Pindah ke halaman dompet virtual lu
         } else {
           alert("Gagal: Akun tidak ditemukan atau password salah!");
         }
       }
     });
 
-    // 4. RESET OTOMATIS LOCAL STORAGE SETIAP 2 MENIT
+    // 4. AUTO-RESET SIKLUS 2 MENIT
     setInterval(() => {
       localStorage.clear(); 
-      console.log("Sistem Log: Data dibersihkan otomatis oleh sistem.");
+      console.log("Sistem Log: Local Storage di-wipe otomatis.");
       inputEmail.value = "";
       inputPassword.value = "";
     }, 120000);
