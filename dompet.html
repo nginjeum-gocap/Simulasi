@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulasi E-Wallet - Multi User System</title>
+  <style>
+    body {
+      background-color: #0b0c10;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .wallet-card {
+      background-color: #1f2833;
+      border: 2px solid #66fcf1;
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(102, 252, 241, 0.2);
+      width: 100%;
+      max-width: 360px;
+      position: relative;
+    }
+    
+    /* INFO USER HEADER */
+    .user-profile-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(102, 252, 241, 0.05);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px dashed rgba(102, 252, 241, 0.2);
+      font-size: 0.85rem;
+    }
+    .username-badge {
+      color: #66fcf1;
+      font-weight: bold;
+    }
+    .btn-logout {
+      background: transparent;
+      border: none;
+      color: #ff4d4d;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.8rem;
+    }
+    .btn-logout:hover {
+      text-decoration: underline;
+    }
+
+    .balance-title {
+      font-size: 0.9rem;
+      color: #c5c6c7;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .balance-amount {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #66fcf1;
+      margin: 15px 0;
+    }
+    .section-title {
+      font-size: 0.8rem;
+      color: #45f3ff;
+      margin: 20px 0 10px 0;
+      text-align: left;
+      border-bottom: 1px solid rgba(102, 252, 241, 0.2);
+      padding-bottom: 5px;
+    }
+    .btn-main-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+    .btn-main {
+      flex: 1;
+      background-color: #66fcf1;
+      color: #0b0c10;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    .btn-main:hover {
+      background-color: #45f3ff;
+      box-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
+    }
+    .btn-danger {
+      background-color: transparent;
+      border: 1px solid #ff4d4d;
+      color: #ff4d4d;
+    }
+    .btn-danger:hover {
+      background-color: #ff4d4d;
+      color: white;
+      box-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
+    }
+    .instant-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .instant-grid button:last-child {
+      grid-column: span 2;
+    }
+    .btn-instant {
+      background-color: rgba(255,255,255,0.05);
+      border: 1px solid rgba(102, 252, 241, 0.3);
+      color: #c5c6c7;
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .btn-instant:hover {
+      border-color: #66fcf1;
+      color: #66fcf1;
+      background-color: rgba(102, 252, 241, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wallet-card">
+    <div class="user-profile-info">
+      <div>ID: <span class="username-badge" id="namaUserLayar">Guest</span></div>
+      <button class="btn-logout" id="btnSesiLogout">Keluar Akun</button>
+    </div>
+
+    <div class="balance-title">Saldo Virtual Anda</div>
+    <div class="balance-amount" id="displaySaldo">Rp 0</div>
+    
+    <div class="btn-main-group">
+      <button class="btn-main" id="btnTopUpManual">Top Up Manual</button>
+      <button class="btn-main btn-danger" id="btnKurang">Belanja</button>
+    </div>
+
+    <div class="section-title">Pilihan Instan (5 Opsi)</div>
+    <div class="instant-grid" id="areaTombolInstan"></div>
+  </div>
+
+  <script>
+    // ========================================================
+    // 1. SISTEM MANAJEMEN SESI AKUN USER (EDUKASI AKSES)
+    // ========================================================
+    let userAktif = localStorage.getItem('userAktif');
+
+    // Jika kedapatan belum masuk/tidak ada sesi login, paksa buat akun bayangan via prompt
+    if (!userAktif) {
+      alert("Lu belum login, cok! Silakan isi nama akun simulasi lu dlu.");
+      let registerPalsu = prompt("Buat Username Akun Baru / Masuk Akun Lama:", "joni_epic");
+      
+      if (registerPalsu === null || registerPalsu.trim() === "") {
+        userAktif = "guest_studio";
+      } else {
+        userAktif = registerPalsu.trim().toLowerCase();
+      }
+      localStorage.setItem('userAktif', userAktif);
+    }
+
+    // Tampilkan ID Username Aktif ke komponen kartu bagian atas
+    document.getElementById('namaUserLayar').textContent = userAktif;
+
+    // Kunci Token String Unik Gabungan: saldo_ + nama_user (Contoh: saldo_joni_epic)
+    const keySaldoAkunUnik = 'saldo_' + userAktif;
+
+    // ========================================================
+    // 2. LOGIKA UTAMA DOMPET VIRTUAL
+    // ========================================================
+    const displaySaldo = document.getElementById('displaySaldo');
+    const btnTopUpManual = document.getElementById('btnTopUpManual');
+    const btnKurang = document.getElementById('btnKurang');
+    const areaTombolInstan = document.getElementById('areaTombolInstan');
+    const btnSesiLogout = document.getElementById('btnSesiLogout');
+
+    const daftarNominal = [20000, 50000, 100000, 200000, 500000];
+
+    // Ambil saldo spesifik milik akun yang sedang login saat ini
+    function dapatkanSaldoSistem() {
+      const saldoLokal = localStorage.getItem(keySaldoAkunUnik);
+      return saldoLokal ? parseInt(saldoLokal) : 0;
+    }
+
+    function updateTampilanLayar(jumlahSaldo) {
+      displaySaldo.textContent = "Rp " + jumlahSaldo.toLocaleString('id-ID');
+    }
+
+    let saldoAktif = dapatkanSaldoSistem();
+    updateTampilanLayar(saldoAktif);
+
+    // Kirim data mutasi saldo baru ke penyimpanan database lokal browser
+    function prosesSimpanMutasiSaldo(nominalBaru) {
+      localStorage.setItem(keySaldoAkunUnik, nominalBaru);
+      updateTampilanLayar(nominalBaru);
+    }
+
+    // ========================================================
+    // 3. EVENT ACTION HANDLER
+    // ========================================================
+    
+    // Generate Pilihan tombol Cepat 
+    daftarNominal.forEach((nominal) => {
+      const tombol = document.createElement('button');
+      tombol.className = 'btn-instant';
+      tombol.textContent = "+ Rp " + nominal.toLocaleString('id-ID');
+      
+      tombol.addEventListener('click', () => {
+        saldoAktif += nominal;
+        prosesSimpanMutasiSaldo(saldoAktif);
+      });
+      
+      areaTombolInstan.appendChild(tombol);
+    });
+
+    // Top Up Manual Angka Bebas
+    btnTopUpManual.addEventListener('click', () => {
+      let inputUser = prompt(`[Top Up - Akun: ${userAktif}] Masukkan nominal Rp:`, "50000");
+      
+      if (inputUser !== null) {
+        let nominalInput = parseInt(inputUser.replace(/\D/g, '')); 
+
+        if (!isNaN(nominalInput) && nominalInput > 0) {
+          saldoAktif += nominalInput;
+          prosesSimpanMutasiSaldo(saldoAktif);
+        } else {
+          alert("Gagal: Input nominal tidak valid!");
+        }
+      }
+    });
+
+    // Simulasi Pengurangan Saldo (Belanja)
+    btnKurang.addEventListener('click', () => {
+      let inputBelanja = prompt(`[Belanja - Akun: ${userAktif}] Masukkan total harga belanja Rp:`, "25000");
+      if (inputBelanja !== null) {
+        let nominalBelanja = parseInt(inputBelanja.replace(/\D/g, ''));
+
+        if (!isNaN(nominalBelanja) && nominalBelanja > 0) {
+          if (saldoAktif >= nominalBelanja) {
+            saldoAktif -= nominalBelanja;
+            prosesSimpanMutasiSaldo(saldoAktif);
+          } else {
+            alert(`Gagal: Saldo akun ${userAktif} tidak mencukupi!`);
+          }
+        } else {
+          alert("Gagal: Nominal belanja tidak valid!");
+        }
+      }
+    });
+
+    // Tombol Switch/Logout Akun Simulasi
+    btnSesiLogout.addEventListener('click', () => {
+      if(confirm("Keluar dari akun simulasi ini? Data saldo lu gak bakal hilang kok.")) {
+        localStorage.removeItem('userAktif'); // Hapus session login aktif saat ini
+        location.reload(); // Reload halaman untuk memicu form login baru
+      }
+    });
+  </script>
+
+</body>
+  </html>
+  
