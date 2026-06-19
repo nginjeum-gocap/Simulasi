@@ -1,10 +1,316 @@
-// Contoh simulasi ketika user menekan tombol "Masuk"
-function prosesLogin(usernameInput) {
-  if(usernameInput.trim() !== "") {
-    // 1. Simpan username yang sedang aktif saat ini
-    localStorage.setItem('userAktif', usernameInput.toLowerCase());
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Animation Studio - Gerbang Masuk</title>
+  <style>
+    body {
+      background-color: #0b0c10;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      flex-direction: column;
+    }
+
+    .welcome-container {
+      text-align: center;
+      max-width: 400px;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #66fcf1;
+      text-shadow: 0 0 15px rgba(102, 252, 241, 0.4);
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #c5c6c7;
+      font-size: 0.95rem;
+      margin-bottom: 30px;
+    }
+
+    .btn-trigger {
+      background-color: #66fcf1;
+      color: #0b0c10;
+      border: none;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 252, 241, 0.2);
+    }
+
+    .btn-trigger:hover {
+      background-color: #45f3ff;
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(102, 252, 241, 0.5);
+    }
+
+    /* BACKGROUND BLUR POP-UP (OVERLAY) */
+    .popup-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(11, 12, 16, 0.85);
+      backdrop-filter: blur(6px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s ease;
+      z-index: 999;
+    }
+
+    /* KETIKA POP-UP AKTIF */
+    .popup-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* KOTAK FORM POP-UP */
+    .popup-box {
+      background-color: #1f2833;
+      border: 2px solid #66fcf1;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 350px;
+      padding: 25px;
+      box-shadow: 0 0 25px rgba(102, 252, 241, 0.3);
+      position: relative;
+      transform: scale(0.8);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .popup-overlay.show .popup-box {
+      transform: scale(1);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 12px; right: 15px;
+      color: #c5c6c7;
+      font-size: 1.4rem;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+    .close-btn:hover { color: #ff4d4d; }
+
+    .form-title {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #ffffff;
+    }
+
+    /* STYLE ATRIBUT INPUT */
+    .input-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: #66fcf1;
+      margin-bottom: 5px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 10px 15px;
+      background-color: #0b0c10;
+      border: 1px solid rgba(102, 252, 241, 0.3);
+      border-radius: 8px;
+      color: white;
+      outline: none;
+      font-size: 0.9rem;
+    }
+
+    .input-group input:focus {
+      border-color: #66fcf1;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background-color: #66fcf1;
+      color: #0b0c10;
+      border: none;
+      padding: 11px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.95rem;
+      margin-top: 10px;
+    }
+
+    .switch-form-text {
+      font-size: 0.8rem;
+      color: #c5c6c7;
+      margin-top: 15px;
+    }
+
+    .switch-form-text span {
+      color: #45f3ff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* INFO TIMER PEMBERSIHAN DATA */
+    .timer-info {
+      margin-top: 30px;
+      font-size: 0.75rem;
+      color: #ff4d4d;
+      border: 1px dashed #ff4d4d;
+      padding: 8px;
+      border-radius: 6px;
+      background-color: rgba(255, 77, 77, 0.05);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="welcome-container">
+    <h1>Studio Gateway</h1>
+    <p>Silakan masuk ke akun simulasi Anda untuk mengakses Layanan Dompet Virtual Kreatif.</p>
+    <button class="btn-trigger" id="bukaPopupBtn">Masuk / Daftar</button>
     
-    // 2. Lempar user ke halaman dompet
-    window.location.href = 'dompet.html';
-  }
-}
+    <div class="timer-info">
+      ⚠️ Mode Simulasi Aktif: Seluruh database akun di Local Storage akan otomatis terhapus bersih setiap 2 menit sekali demi keamanan edukasi.
+    </div>
+  </div>
+
+  <div class="popup-overlay" id="popupOverlay">
+    <div class="popup-box">
+      <button class="close-btn" id="tutupPopupBtn">&times;</button>
+      
+      <div class="form-title" id="judulForm">Masuk Akun</div>
+      
+      <div class="input-group">
+        <label for="inputEmail">ALAMAT EMAIL</label>
+        <input type="email" id="inputEmail" placeholder="contoh@domain.com">
+      </div>
+
+      <div class="input-group">
+        <label for="inputPassword">PASSWORD</label>
+        <input type="password" id="inputPassword" placeholder="••••••••">
+      </div>
+
+      <button class="btn-submit" id="submitFormBtn">Masuk</button>
+
+      <div class="switch-form-text" id="infoPindahForm">
+        Belum punya akun? <span id="linkTukarForm">Daftar Sekarang</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const popupOverlay = document.getElementById('popupOverlay');
+    const bukaPopupBtn = document.getElementById('bukaPopupBtn');
+    const tutupPopupBtn = document.getElementById('tutupPopupBtn');
+    
+    const judulForm = document.getElementById('judulForm');
+    const inputEmail = document.getElementById('inputEmail');
+    const inputPassword = document.getElementById('inputPassword');
+    const submitFormBtn = document.getElementById('submitFormBtn');
+    const infoPindahForm = document.getElementById('infoPindahForm');
+    const linkTukarForm = document.getElementById('linkTukarForm');
+
+    // Status form saat ini (true = mode login, false = mode registrasi)
+    letisModeLogin = true;
+
+    // 1. KONTROL TOMBOL POP-UP
+    bukaPopupBtn.addEventListener('click', () => popupOverlay.classList.add('show'));
+    tutupPopupBtn.addEventListener('click', () => popupOverlay.classList.remove('show'));
+
+    // Menutup pop-up jika user klik area blur di luar kotak
+    popupOverlay.addEventListener('click', (e) => {
+      if(e.target === popupOverlay) popupOverlay.classList.remove('show');
+    });
+
+    // 2. LOGIKA TUKAR MODE (LOGIN OKE / REGISTRASI OKE)
+    linkTukarForm.addEventListener('click', () => {
+      isModeLogin = !isModeLogin;
+      inputEmail.value = "";
+      inputPassword.value = "";
+
+      if(isModeLogin) {
+        judulForm.textContent = "Masuk Akun";
+        submitFormBtn.textContent = "Masuk";
+        infoPindahForm.innerHTML = `Belum punya akun? <span id="linkTukarForm">Daftar Sekarang</span>`;
+      } else {
+        judulForm.textContent = "Registrasi Akun Baru";
+        submitFormBtn.textContent = "Daftar Akun";
+        infoPindahForm.innerHTML = `Sudah punya akun? <span id="linkTukarForm">Login Di Sini</span>`;
+      }
+      // Re-bind element klik karena innerHTML di-reset
+      document.getElementById('linkTukarForm').addEventListener('click', arguments.callee);
+    });
+
+    // 3. LOGIKA AKSI EKSEKUSI FORM SUBMIT
+    submitFormBtn.addEventListener('click', () => {
+      const email = inputEmail.value.trim().toLowerCase();
+      const password = inputPassword.value.trim();
+
+      if(email === "" || password === "") {
+        alert("Gagal: Email dan Password tidak boleh kosong!");
+        return;
+      }
+
+      // Ambil DB lokal user di browser
+      let databaseUser = JSON.parse(localStorage.getItem('db_simulasi_user')) || {};
+
+      if(!isModeLogin) {
+        // --- PROSES REGISTRASI ---
+        if(databaseUser[email]) {
+          alert("Gagal: Email ini sudah terdaftar di sistem!");
+        } else {
+          // Masukkan data baru ke object database
+          databaseUser[email] = password;
+          localStorage.setItem('db_simulasi_user', JSON.stringify(databaseUser));
+          alert("Registrasi Sukses! Akun Anda berhasil terdaftar. Silakan login.");
+          
+          // Balikin otomatis ke menu login
+          linkTukarForm.click();
+        }
+      } else {
+        // --- PROSES LOGIN ---
+        if(databaseUser[email] && databaseUser[email] === password) {
+          // Bikin token sesi aktif berdasarkan nama depan email
+          const usernameId = email.split('@')[0];
+          localStorage.setItem('userAktif', usernameId);
+          
+          alert(`Login Berhasil! Selamat datang ${usernameId}.`);
+          // Oper / Pindah ke halaman dompet virtual
+          window.location.href = 'dompet.html'; 
+        } else {
+          alert("Gagal: Email tidak terdaftar atau password Anda salah!");
+        }
+      }
+    });
+
+    // ====================================================================
+    // 4. PITUR TIMER SIMULASI: HAPUS SEMUA DATA SETIAP 2 MENIT (120000 ms)
+    // ====================================================================
+    setInterval(() => {
+      localStorage.clear(); 
+      console.log("Sistem Log: Local Storage telah dibersihkan otomatis (Siklus 2 Menit).");
+      
+      // Jika user sedang membuka pop-up saat pembersihan terjadi, paksa reset inputan
+      inputEmail.value = "";
+      inputPassword.value = "";
+    }, 120000);
+  </script>
+
+</body>
+    </html>
+    
