@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const messageText = document.createElement("div");
         messageText.className = "message-text";
-        messageText.textContent = "AllBot sedang mengetik.";
+        messageText.textContent = "Mengetik";
 
         // PERBAIKAN: Memasukkan messageText ke dalam bubble, bukan memuat dirinya sendiri
         typingBubbleElement.appendChild(messageText);
@@ -93,7 +93,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         let dots = 1;
         typingBubbleElement.dataset.intervalId = setInterval(() => {
             if (!typingBubbleElement) return;
-            messageText.textContent = `AllBot sedang mengetik ${"●".repeat(dots)}`;
+            messageText.textContent = `Mengetik ${"●".repeat(dots)}`;
             dots = (dots % 3) + 1;
         }, 400);
     }
